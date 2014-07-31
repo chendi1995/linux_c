@@ -30,6 +30,7 @@ int main(void)
 		exit(1);
 	}
 	sleep(1);
+	printf("%u",thid);
 	exit(0);
 	
 }
