@@ -38,13 +38,21 @@ void *communicate(void *arg)
 {
 	int conn_fd=*(int *)arg;
 	int i;
+	int m;//获取recv的返回值
 	struct data_bag bag;
 
 		printf("有用户加入了聊天。。。\n");
 		while(1)
 		{
 			memset(&bag,0,sizeof(bag));
-			recv(conn_fd,(void *)&bag,sizeof(bag),0);
+			m=recv(conn_fd,(void *)&bag,sizeof(bag),0);
+			if(m==0)
+			{
+				printf("有用户退出了聊天！\n");
+				close(conn_fd);
+				n--;
+				return NULL;
+			}
 			printf("%s:%s\n",bag.name,bag.buf);
 			for(i=0;i<n;i++)
 			{
@@ -88,5 +96,6 @@ int main()
 		if(pthread_create(&thid,NULL,(void *)&communicate,(void *)&conn_fd)!=0)
 			myerr("pthread_create",__LINE__);
 	}
-
+	close(sock_fd);
+	
 }
