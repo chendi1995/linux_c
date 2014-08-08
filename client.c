@@ -12,22 +12,41 @@
 #include<fcntl.h>
 #include<stdlib.h>
 #include<unistd.h>
+#include<string.h>
 #include<sys/socket.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
-void myerr(char *string,int line)
+#include<pthread.h>
+#define MAX_CHAT 20 //最大聊天字数
+struct data_bag //网络数据包
+{
+	char name[6];//用户昵称
+	char buf[MAX_CHAT];//聊天内容
+}bag;
+void myerr(char *string,int line)//错误处理
 {
 	fprintf(stderr,"line:%d",line);
 	perror(string);
 	exit(1);
 }
-
+	
+void *rec(void *arg)
+{
+	int conn_fd=*(int *)arg;
+	while(1)
+	{
+		memset(bag.buf,0,sizeof(bag.buf));
+		recv(conn_fd,(void *)&bag,sizeof(bag),0);
+		printf("%s说:%s\n",bag.name,bag.buf);
+	}
+}
 int main()
 {
 	struct sockaddr_in client_addr,serv_addr;
 	int sock_fd;
 	char name[6];
-	char buf[21];
+	char buf[MAX_CHAT];
+	pthread_t thid;
 	if((sock_fd=socket(AF_INET,SOCK_STREAM,0))<0)
 		myerr("socket",__LINE__);
 	memset(&serv_addr,0,sizeof(struct sockaddr_in));
@@ -39,15 +58,16 @@ int main()
 		myerr("connect",__LINE__);
 	printf("已链接上服务器。。。\n");
 	printf("请输入昵称:");
-	gets(name);
-	if(send(sock_fd,(void *)name,sizeof(name),0)<0)
-		myerr("send",__LINE__);
+	fflush(stdin);
+	gets(bag.name);
+	sleep(1);
+	printf("昵称验证通过，开始聊天！\n");
+	if(pthread_create(&thid,NULL,(void *)rec,(void *)&sock_fd)!=0)
+		myerr("pthread_create",__LINE__);
 	while(1)
 	{
-		printf("%s:",name);
-		gets(buf);
-		printf("\n");
-		send(sock_fd,(void *)buf,sizeof(buf),0);
+		gets(bag.buf);
+		send(sock_fd,(void *)&bag,sizeof(bag),0);
 	}
 	
 }
