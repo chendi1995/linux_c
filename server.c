@@ -16,6 +16,7 @@
 #include<string.h>
 #include<arpa/inet.h>
 #include<errno.h>
+#include<pthread.h>
 
 #define MAX_NUMBER 50  //聊天室最大人数
 #define MAX_CHAT 20 //最多聊天字数
@@ -23,7 +24,7 @@ struct data_bag //网络数据包
 {
 	char name[6];//用户昵称
 	char buf[MAX_CHAT];//聊天内容
-}bag;
+};
 int member[MAX_NUMBER];
 int n=0;//实际人数；
 void myerr(char *string,int line)
@@ -37,10 +38,12 @@ void *communicate(void *arg)
 {
 	int conn_fd=*(int *)arg;
 	int i;
+	struct data_bag bag;
+
 		printf("有用户加入了聊天。。。\n");
 		while(1)
 		{
-			memset(bag.buf,0,sizeof(bag.buf));
+			memset(&bag,0,sizeof(bag));
 			recv(conn_fd,(void *)&bag,sizeof(bag),0);
 			printf("%s:%s\n",bag.name,bag.buf);
 			for(i=0;i<n;i++)

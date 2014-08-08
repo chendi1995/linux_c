@@ -22,7 +22,7 @@ struct data_bag //网络数据包
 {
 	char name[6];//用户昵称
 	char buf[MAX_CHAT];//聊天内容
-}bag;
+};
 void myerr(char *string,int line)//错误处理
 {
 	fprintf(stderr,"line:%d",line);
@@ -32,16 +32,18 @@ void myerr(char *string,int line)//错误处理
 	
 void *rec(void *arg)
 {
+	struct data_bag bag;
 	int conn_fd=*(int *)arg;
 	while(1)
 	{
-		memset(bag.buf,0,sizeof(bag.buf));
+		memset(&bag,0,sizeof(bag));
 		recv(conn_fd,(void *)&bag,sizeof(bag),0);
 		printf("%s说:%s\n",bag.name,bag.buf);
 	}
 }
 int main()
 {
+	struct data_bag bag;
 	struct sockaddr_in client_addr,serv_addr;
 	int sock_fd;
 	char name[6];
