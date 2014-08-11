@@ -17,19 +17,7 @@
 #include<netinet/in.h>
 #include<arpa/inet.h>
 #include<pthread.h>
-#define MAX_CHAT 20 //最大聊天字数
-struct data_bag //网络数据包
-{
-	char name[6];//用户昵称
-	char buf[MAX_CHAT];//聊天内容
-};
-void myerr(char *string,int line)//错误处理
-{
-	fprintf(stderr,"line:%d",line);
-	perror(string);
-	exit(1);
-}
-	
+#include"myinclude.h"
 void *rec(void *arg)
 {
 	struct data_bag bag;
@@ -38,9 +26,18 @@ void *rec(void *arg)
 	{
 		memset(&bag,0,sizeof(bag));
 		recv(conn_fd,(void *)&bag,sizeof(bag),0);
-		printf("%s说:%s\n",bag.name,bag.buf);
+		if(bag.flag==0)
+			printf("%s说:%s\n",bag.name,bag.buf);
+		if(bag.flag==1)
+		{
+			if(strcmp(bag.buf,"此用户不在线或者不存在该用户")==0)
+				printf("此用户不在线或者不存在该用户！\n");
+			else
+			printf("%s悄悄地对你说:%s\n",bag.name,bag.buf);
+		}
 	}
 }
+
 int main()
 {
 	struct data_bag bag;
@@ -61,15 +58,33 @@ int main()
 	printf("已链接上服务器。。。\n");
 	printf("请输入昵称:");
 	fflush(stdin);
-	gets(bag.name);
+	scanf("%s",bag.name);
+	getchar();
 	sleep(1);
 	printf("昵称验证通过，开始聊天！\n");
+	printf("备注:默认进入群聊模式，私聊输入“-昵称:内容”\n");
 	if(pthread_create(&thid,NULL,(void *)rec,(void *)&sock_fd)!=0)
 		myerr("pthread_create",__LINE__);
 	while(1)
 	{
+		fflush(stdin);
 		gets(bag.buf);
-		send(sock_fd,(void *)&bag,sizeof(bag),0);
+		if(bag.buf[0]=='-')
+		{
+			bag.flag=1;
+			send(sock_fd,(void *)&bag,sizeof(bag),0);
+			
+
+		}
+		else if((strcmp(bag.buf,"\0")!=0)&&(strlen(bag.buf)<=MAX_CHAT))
+		{
+			bag.flag=0;
+			send(sock_fd,(void *)&bag,sizeof(bag),0);
+		}
+		else if(strlen(bag.buf)>MAX_CHAT)
+			printf("字数过长，请分次输入！\n");
+		else
+			printf("不能输入空消息\n");
 	}
 	
 }

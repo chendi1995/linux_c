@@ -17,35 +17,51 @@
 #include<arpa/inet.h>
 #include<errno.h>
 #include<pthread.h>
+#include"myinclude.h"
 
-#define MAX_NUMBER 50  //聊天室最大人数
-#define MAX_CHAT 20 //最多聊天字数
-struct data_bag //网络数据包
-{
-	char name[6];//用户昵称
-	char buf[MAX_CHAT];//聊天内容
-};
 int member[MAX_NUMBER];
+char mem[100][6];//套接字昵称连接数组
 int n=0;//实际人数；
-void myerr(char *string,int line)
-{
-	fprintf(stderr,"line:%d",line);
-	perror(string);
-	exit(1);
-}
 
+void analyze(struct data_bag *bag)//私聊包参数解析
+{
+	char *p=(bag->buf);
+	int i;
+	i=0;
+	p++;
+	while((*p)!=':')
+	{
+		bag->targetname[i]=(*p);
+		i++;
+		p++;
+	}
+	bag->targetname[i]='\0';
+	p++;
+	i=0;
+	while((*p)!='\0')
+	{
+		bag->buf[i]=(*p);
+		i++;
+		p++;
+	}
+	bag->buf[i]='\0';
+
+}
 void *communicate(void *arg)
 {
 	int conn_fd=*(int *)arg;
 	int i;
 	int m;//获取recv的返回值
 	struct data_bag bag;
-
-		printf("有用户加入了聊天。。。\n");
-		while(1)
+	
+	printf("有用户加入了聊天。。。\n");
+	while(1)
+	{
+		memset(&bag,0,sizeof(bag));
+		m=recv(conn_fd,(void *)&bag,sizeof(bag),0);
+		strcpy(mem[conn_fd],bag.name);
+		if(bag.flag==0)
 		{
-			memset(&bag,0,sizeof(bag));
-			m=recv(conn_fd,(void *)&bag,sizeof(bag),0);
 			if(m==0)
 			{
 				printf("有用户退出了聊天！\n");
@@ -59,6 +75,35 @@ void *communicate(void *arg)
 				send(member[i],(void *)&bag,sizeof(bag),0);
 			}
 		}
+		else if(bag.flag==1)
+		{
+			if(m==0)
+			{
+				printf("有用户退出了聊天！\n");
+				close(conn_fd);
+				n--;
+				return NULL;
+			}
+			analyze(&bag);
+			printf("targetname:%s\nbuf:%s\n",bag.targetname,bag.buf);
+			printf("%s私聊%s:%s\n",bag.name,bag.targetname,bag.buf);
+			for(i=0;i<100;i++)
+			{
+				if(strcmp(mem[i],"\0")==0)
+					continue;
+				else if(strcmp(mem[i],bag.targetname)==0)
+				{
+					send(i,(void *)&bag,sizeof(bag),0);
+					break;
+				}
+			}
+			if(i==100)
+			{
+				strcpy(bag.buf,"此用户不在线或者不存在该用户");
+				send(conn_fd,(void *)&bag,sizeof(bag),0);
+			}
+		}
+	}
 }
 
 int main()
