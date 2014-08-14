@@ -23,7 +23,6 @@
 int member[MAX_NUMBER];
 char mem[100][10];//套接字昵称连接数组
 int n=0;//实际人数；
-
 int read_file(struct data_bag bag[])//用户信息读出文件函数
 {
 	int fd;
@@ -82,9 +81,13 @@ void *communicate(void *arg)
 	int num;
 	struct data_bag bag;
 	struct data_bag bag0[50];
+	FILE *fp;
 	time_get();
 	printf("有用户连接上了服务器。。。\n");
-	
+	write_time("date.log");
+	fp=fopen("date.log","a+");
+	fprintf(fp,"有用户连接上了服务器。。。\n");
+	fclose(fp);
 	while(1)
 	{
 		memset(&bag,0,sizeof(bag));
@@ -94,6 +97,10 @@ void *communicate(void *arg)
 			if(m==0)
 			{
 				printf("%s退出了聊天！\n",mem[conn_fd]);
+				write_time("date.log");
+				fp=fopen("date.log","a+");
+				fprintf(fp,"%s退出了聊天！\n",mem[conn_fd]);
+				fclose(fp);
 				close(conn_fd);
 				n--;
 				memset(mem[conn_fd],0,sizeof(mem[conn_fd]));
@@ -111,7 +118,11 @@ void *communicate(void *arg)
 			if(m==0)
 			{
 				printf("%s退出了聊天！\n",mem[conn_fd]);
+				write_time("date.log");
+				fp=fopen("date.log","a+");
+				fprintf(fp,"%s退出了聊天！\n",mem[conn_fd]);
 				close(conn_fd);
+				fclose(fp);
 				n--;
 				memset(mem[conn_fd],0,sizeof(mem[conn_fd]));
 				return NULL;
@@ -119,6 +130,10 @@ void *communicate(void *arg)
 			analyze(&bag);
 			time_get();
 			printf("%s私聊%s:%s\n",bag.name,bag.targetname,bag.buf);
+			write_time("date.log");
+			fp=fopen("date.log","a+");
+			fprintf(fp,"%s私聊%s:%s\n",bag.name,bag.targetname,bag.buf);
+			fclose(fp);
 			for(i=0;i<100;i++)
 			{
 				if(strcmp(mem[i],"\0")==0)
@@ -139,14 +154,33 @@ void *communicate(void *arg)
 		{
 			time_get();
 			printf("收到了注册信息包!\n");
-			write_file(bag);	
-			strcpy(bag.buf,"注册信息已被服务器验证，注册成功！");
-			send(conn_fd,(void *)&bag,sizeof(bag),0);
+			write_time("date.log");
+			fp=fopen("date.log","a+");
+			fprintf(fp,"收到了注册信息包!\n");
+			fclose(fp);
+			num=read_file(bag0);
+			for(i=0;i<num;i++)
+				if(strcmp(bag.logname,bag0[i].logname)==0)
+				{
+					strcpy(bag.buf,"该用户名已经被注册，请更换用户名！");
+					send(conn_fd,(void *)&bag,sizeof(bag),0);
+					break;
+				}
+			if(i==num)
+			{
+				write_file(bag);	
+				strcpy(bag.buf,"注册信息已被服务器验证，注册成功！");
+				send(conn_fd,(void *)&bag,sizeof(bag),0);
+			}
 		}
 		if(bag.flag==3)
 		{
 			time_get();
 			printf("收到了登录信息包\n");
+			write_time("date.log");
+			fp=fopen("date.log","a+");
+			fprintf(fp,"收到了登录信息包!\n");
+			fclose(fp);
 			num=read_file(bag0);
 			for(i=0;i<num;i++)
 				if((strcmp(bag.logname,bag0[i].logname)==0)&&(strcmp(bag.passwd,bag0[i].passwd)==0))
@@ -187,11 +221,16 @@ int main()
 	struct sockaddr_in client_addr,serv_addr;
 	int option_value=1;
 	int client_len;
+	FILE *fp;
+	fp=fopen("date.log","a+");
 	pthread_t thid;
 	time_get();
 	if((sock_fd=socket(AF_INET,SOCK_STREAM,0))<0)
 		myerr("socket",__LINE__);
 	printf("套接字接口已建立。。。\n");
+	write_time("date.log");
+	fprintf(fp,"套接字接口已建立。。。\n");
+	fclose(fp);
 	if(setsockopt(sock_fd,SOL_SOCKET,SO_REUSEADDR|SO_KEEPALIVE,(void *)&option_value,sizeof(int))<0)
 		myerr("setsockopt",__LINE__);
 	//初始化
@@ -200,22 +239,34 @@ int main()
 	serv_addr.sin_port=htons(4507);
 	serv_addr.sin_addr.s_addr=htonl(INADDR_ANY);
 	printf("服务器正在初始化。。。\n");
+	write_time("date.log");
+	fp=fopen("date.log","a+");
+	fprintf(fp,"服务器正在初始化。。。\n");
+	fclose(fp);
 	if(bind(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr_in))<0)
 		myerr("bind",__LINE__);
 	if(listen(sock_fd,12)<0)
 		myerr("listen",__LINE__);
 	printf("初始化成功，等待链接。。。\n");
+	write_time("date.log");
+	fp=fopen("date.log","a+");
+	fprintf(fp,"初始化成功，等待链接\n");
+	fclose(fp);
 	while(1)
 	{
 		client_len=sizeof(struct sockaddr_in);
 		conn_fd=accept(sock_fd,(struct sockaddr *)&client_addr,&client_len);
 		
 		if(conn_fd<0)
+		{
 			myerr("accept",__LINE__);
+		}
 		member[n]=conn_fd;
 		n++;
 		if(pthread_create(&thid,NULL,(void *)&communicate,(void *)&conn_fd)!=0)
+		{
 			myerr("pthread_create",__LINE__);
+		}
 	}
 	close(sock_fd);
 	

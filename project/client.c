@@ -92,70 +92,77 @@ void usr_create(int sock_fd)
  	char pd[128],pd1[128];
  	char a;
 	bag.flag=2;
-	printf("**********************\n\n");
-	printf("       注册界面\n\n");
-	printf("**********************\n");
-	printf("用户名:");
-	scanf("%s",bag.logname);
-	getchar();
-	printf("\n");
-	printf("密码：");
 	while(1)
 	{
-		for(i=0;;i++)
+		printf("**********************\n\n");
+		printf("       注册界面\n\n");
+		printf("**********************\n");
+		printf("用户名:");
+		scanf("%s",bag.logname);
+		getchar();
+		printf("\n");
+		printf("密码：");
+		while(1)
 		{
-			pd[i]=getch();
-			if(pd[i]=='\n')
+			for(i=0;;i++)
 			{
-				pd[i]='\0';
+				pd[i]=getch();
+				if(pd[i]=='\n')
+				{
+					pd[i]='\0';
+					break;
+				}
+				if(pd[i]==127)
+				{
+					printf("\b \b");
+					i=i-2;
+				}
+				else
+					printf("*");
+				if(i<0)
+					pd[0]='\0';
+			}
+
+			printf("\n再次输入密码：");
+
+			for(i=0;;i++)
+			{
+				pd1[i]=getch();
+				if(pd1[i]=='\n')
+				{
+					pd1[i]='\0';
+					break;
+				}
+				if(pd1[i]==127)
+				{
+					printf("\b \b");
+					i=i-2;
+				}
+
+				else
+					printf("*");
+				if(i<0)
+					pd1[0]='\0';
+			}
+			if(strcmp(pd,pd1)==0)
+
 				break;
-			}
-			if(pd[i]==127)
-			{
-				printf("\b \b");
-				i=i-2;
-			}
 			else
-				printf("*");
-			if(i<0)
-				pd[0]='\0';
-		}
-
-		printf("\n再次输入密码：");
-
-		for(i=0;;i++)
-		{
-			pd1[i]=getch();
-			if(pd1[i]=='\n')
 			{
-				pd1[i]='\0';
-				break;
+				printf("\n两次输入的密码不一致，请重新输入：\n");
+				printf("密码：");
 			}
-			if(pd1[i]==127)
-			{
-				printf("\b \b");
-				i=i-2;
-			}
-		
-			else
-				printf("*");
-			if(i<0)
-				pd1[0]='\0';
 		}
-		if(strcmp(pd,pd1)==0)
-
-			break;
+		strcpy(bag.passwd,pd);
+		printf("\n昵称: ");
+		scanf("%s",bag.name);
+		send(sock_fd,(void *)&bag,sizeof(bag),0);
+		recv(sock_fd,(void *)&bag,sizeof(bag),0);
+		if(strcmp(bag.buf,"该用户名已经被注册，请更换用户名！")==0)
+			printf("%s\n",bag.buf);
 		else
-		{
-			printf("\n两次输入的密码不一致，请重新输入：\n");
-			printf("密码：");
-		}
+			break;
 	}
-	strcpy(bag.passwd,pd);
-	printf("\n昵称: ");
-	scanf("%s",bag.name);
-	send(sock_fd,(void *)&bag,sizeof(bag),0);
-	recv(sock_fd,(void *)&bag,sizeof(bag),0);
 	printf("%s\n",bag.buf);
 	printf("等待5秒系统自动返回登陆界面!\n");
 	sleep(5);
@@ -330,6 +337,11 @@ int main()
 			bag.flag=4;
 			send(sock_fd,(void *)&bag,sizeof(bag),0);
 			sleep(1);
+		}
+		else if(strcmp(bag.buf,"exit")==0)
+		{
+			printf("已成功退出聊天！\n");
+			exit(0);
 		}
 		else if((strcmp(bag.buf,"\0")!=0)&&(strlen(bag.buf)<=MAX_CHAT))
 		{
