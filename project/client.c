@@ -220,15 +220,17 @@ struct data_bag screen(int sock_fd)
 {
 	int choice;
 	struct data_bag bag;
-	printf("**********************\n\n");
+loop:printf("**********************\n\n");
 	printf("    1.新用户注册\n\n");
 	printf("    2.老用户登录\n\n");
 	printf("**********************\n");
+	printf("请选择：1或者2\n");
 	scanf("%d",&choice);
 	switch(choice)
 	{
 		case 1: usr_create(sock_fd);
 		case 2: bag=usr_login(sock_fd) ;return bag;
+		default: printf("输入选项无效！\n");goto loop;
 	}
 }
 
@@ -288,13 +290,14 @@ int main()
 	int sock_fd;
 	char name[6];
 	char buf[MAX_CHAT];
+	int i;
 	pthread_t thid;
 	if((sock_fd=socket(AF_INET,SOCK_STREAM,0))<0)
 		myerr("socket",__LINE__);
 	memset(&serv_addr,0,sizeof(struct sockaddr_in));
 	serv_addr.sin_family=AF_INET;
 	serv_addr.sin_port=htons(4507);
-	if(inet_aton("222.24.51.133",&serv_addr.sin_addr)<0)
+	if(inet_aton("192.168.1.107",&serv_addr.sin_addr)<0)
 		myerr("inet_aton",__LINE__);
 	if(connect(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr_in))<0)
 		myerr("connect",__LINE__);
@@ -311,6 +314,7 @@ int main()
 	printf("输入“lc”可查看该用户的私聊聊天记录\n");
 	printf("输入“l”可查看群聊聊天记录");
 	printf("输入“lo”可查看当前在线用户列表\n");
+	printf("输入“exit”可退出客户端\n");
 	if(pthread_create(&thid,NULL,(void *)rec,(void *)&sock_fd)!=0)
 		myerr("pthread_create",__LINE__);
 	while(1)
@@ -320,7 +324,13 @@ int main()
 		if(bag.buf[0]=='-')
 		{
 			bag.flag=1;
-			send(sock_fd,(void *)&bag,sizeof(bag),0);
+			for(i=0;i<100;i++)
+				if(bag.buf[i]==':')
+					break;
+			if(i!=100)
+				send(sock_fd,(void *)&bag,sizeof(bag),0);
+			else
+				printf("输入不符合规范\n");
 				
 
 		}
@@ -354,5 +364,5 @@ int main()
 		else
 			printf("不能输入空消息\n");
 	}
-	
+	return 0;
 }

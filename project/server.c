@@ -108,9 +108,14 @@ void *communicate(void *arg)
 			}
 			time_get();
 			printf("%s:%s\n",bag.name,bag.buf);
-			for(i=0;i<n;i++)
+			for(i=0;i<100;i++)
 			{
-				send(member[i],(void *)&bag,sizeof(bag),0);
+				if(strcmp(mem[i],"\0")==0)
+					continue;
+				else if(strcmp(mem[i],"\0")!=0)
+				{
+					send(i,(void *)&bag,sizeof(bag),0);
+				}
 			}
 		}
 		if(bag.flag==1)
@@ -269,5 +274,5 @@ int main()
 		}
 	}
 	close(sock_fd);
-	
+	return 0;
 }
