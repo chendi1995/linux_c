@@ -283,7 +283,7 @@ void *rec(void *arg)
 	}
 }
 
-int main()
+int main(int argc,char *argv[])
 {
 	struct data_bag bag;
 	struct sockaddr_in client_addr,serv_addr;
@@ -297,7 +297,7 @@ int main()
 	memset(&serv_addr,0,sizeof(struct sockaddr_in));
 	serv_addr.sin_family=AF_INET;
 	serv_addr.sin_port=htons(4507);
-	if(inet_aton("192.168.1.107",&serv_addr.sin_addr)<0)
+	if(inet_aton(argv[1],&serv_addr.sin_addr)<0)
 		myerr("inet_aton",__LINE__);
 	if(connect(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr_in))<0)
 		myerr("connect",__LINE__);
@@ -320,7 +320,7 @@ int main()
 	while(1)
 	{
 		fflush(stdin);
-		gets(bag.buf);
+		scanf("%s",bag.buf);
 		if(bag.buf[0]=='-')
 		{
 			bag.flag=1;
